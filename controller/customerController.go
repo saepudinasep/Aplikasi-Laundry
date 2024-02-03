@@ -61,13 +61,6 @@ func UpdateCustomer(customer model.Customer) error {
 func DeleteCustomer(id string) error {
 	db := config.ConnectDb()
 	defer db.Close()
-	exists, err := IsCustomerExists(id)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("pelanggan dengan ID %s tidak ditemukan", id)
-	}
 
 	hasTransactions, err := HasCustomerTransactions(id)
 	if err != nil {
@@ -145,19 +138,6 @@ func GetCustomerById(id string) model.Customer {
 	return customer
 }
 
-func IsCustomerExists(id string) (bool, error) {
-	db := config.ConnectDb()
-	defer db.Close()
-
-	query := "SELECT COUNT(*) FROM mst_customers WHERE id_customer = $1;"
-	var count int
-	err := db.QueryRow(query, id).Scan(&count)
-	if err != nil {
-		return false, err
-	}
-	return count > 0, nil
-}
-
 func HasCustomerTransactions(id string) (bool, error) {
 	db := config.ConnectDb()
 	defer db.Close()
@@ -170,12 +150,3 @@ func HasCustomerTransactions(id string) (bool, error) {
 	}
 	return count > 0, nil
 }
-
-// func Validate(err error, message string, tx *sql.Tx) {
-// 	if err != nil {
-// 		tx.Rollback()
-// 		fmt.Println(err, "Transcantion Roolback!")
-// 	} else {
-// 		fmt.Println("Successfully " + message + " data!")
-// 	}
-// }
