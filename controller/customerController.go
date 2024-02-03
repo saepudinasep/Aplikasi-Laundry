@@ -58,14 +58,9 @@ func UpdateCustomer(customer model.Customer) error {
 	return nil
 }
 
-func DeleteCustomer(id string, tx *sql.Tx) error {
-	exists, err := IsCustomerExists(id, tx)
-	if err != nil {
-		return err
-	}
-	if !exists {
-		return fmt.Errorf("pelanggan dengan ID %s tidak ditemukan", id)
-	}
+func DeleteCustomer(id string) error {
+	db := config.ConnectDb()
+	defer db.Close()
 
 	hasTransactions, err := HasCustomerTransactions(id)
 	if err != nil {
@@ -86,10 +81,37 @@ func DeleteCustomer(id string, tx *sql.Tx) error {
 	return nil
 }
 
-func IsCustomerExists(id string, tx *sql.Tx) (bool, error) {
-	query := "SELECT COUNT(*) FROM mst_customers WHERE id_customer = $1;"
-	var count int
-	err := tx.QueryRow(query, id).Scan(&count)
+func GetAllCustomer() []model.Customer {
+	db := config.ConnectDb()
+	defer db.Close()
+
+	sqlQuery := "SELECT * FROM mst_customers"
+
+	rows, err := db.Query(sqlQuery)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	customers := ScanCustomer(rows)
+
+	return customers
+}
+
+func ScanCustomer(rows *sql.Rows) []model.Customer {
+	customers := []model.Customer{}
+	var err error
+
+	for rows.Next() {
+		customer := model.Customer{}
+		err := rows.Scan(&customer.Id_Customer, &customer.Name, &customer.Alamat, &customer.No_Telp)
+		if err != nil {
+			panic(err)
+		}
+		customers = append(customers, customer)
+	}
+
+	err = rows.Err()
 	if err != nil {
 		panic(err)
 	}
