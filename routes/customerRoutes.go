@@ -62,23 +62,36 @@ func MenuMasterCustomer(customer model.Customer) {
 					Alamat:      strings.TrimSpace(alamatCustomer),
 				}
 
-				err = controller.AddCustomer(customer)
-				if err != nil {
-					fmt.Println("Gagal menyimpan customer:", err)
-					continue
-				}
+			err = controller.AddCustomer(customer, tx)
+			if err != nil {
+				fmt.Println("Gagal menyimpan customer:", err)
+				continue
 			}
-		case 2:
-			fmt.Print("Masukkan ID Customer yang akan diupdate: ")
-			idCustomerUpdateStr, _ := reader.ReadString('\n')
 
-			customer = controller.GetCustomerById(strings.TrimSpace(idCustomerUpdateStr))
+			fmt.Println("Customer berhasil disimpan.")
+			err = tx.Commit()
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
 			}
-			if customer.Id_Customer == "" {
-				fmt.Println("Customer dengan ID tertentu tidak ditemukan.")
+		case 2:
+			fmt.Print("Masukkan ID Customer yang akan diupdate: ")
+			idCustomerUpdateStr, _ := reader.ReadString('\n')
+			// Mengonversi ID Customer yang diambil dari string ke int
+			// idCustomerUpdate, err := strings.TrimSpace(idCustomerUpdateStr)
+			// if err != nil {
+			// 	fmt.Println("Error:", err)
+			// 	return
+			// }
+
+			exists, err := controller.IsCustomerExists(strings.TrimSpace(idCustomerUpdateStr), tx)
+			if err != nil {
+				fmt.Println("Error:", err)
+				return
+			}
+			if !exists {
+				fmt.Println("Data tidak ditemukan untuk ID Customer:", idCustomerUpdateStr)
+				// return
 			} else {
 				fmt.Print("Masukkan Nama Customer baru: ")
 				namaCustomerUpdate, _ := reader.ReadString('\n')
@@ -105,10 +118,9 @@ func MenuMasterCustomer(customer model.Customer) {
 			fmt.Print("Masukkan ID Customer yang akan dihapus: ")
 			idCustomerDelete, _ := reader.ReadString('\n')
 
-			customer = controller.GetCustomerById(strings.TrimSpace(idCustomerDelete))
-
-			if customer.Id_Customer == "" {
-				fmt.Println("Customer dengan ID tertentu tidak ditemukan.")
+			err = controller.DeleteCustomer(strings.TrimSpace(idCustomerDelete), tx)
+			if err != nil {
+				fmt.Println("Error:", err)
 			} else {
 				err = controller.DeleteCustomer(strings.TrimSpace(idCustomerDelete))
 				if err != nil {
@@ -121,24 +133,16 @@ func MenuMasterCustomer(customer model.Customer) {
 			for _, customer := range customers {
 				fmt.Println(customer.Id_Customer, customer.Name, customer.No_Telp, customer.Alamat)
 			}
-		case 5:
-			fmt.Print("Masukkan ID Customer yang akan ditampilkan: ")
-			idCustomerByID, _ := reader.ReadString('\n')
 
-			customer = controller.GetCustomerById(strings.TrimSpace(idCustomerByID))
+			err = tx.Commit()
 			if err != nil {
 				fmt.Println("Error:", err)
 				return
 			}
-
-			if customer.Id_Customer == "" {
-				fmt.Println("Customer dengan ID tertentu tidak ditemukan.")
-			} else {
-				fmt.Printf("ID Customer: %s\n", customer.Id_Customer)
-				fmt.Printf("Nama: %s\n", customer.Name)
-				fmt.Printf("No Telp: %s\n", customer.No_Telp)
-				fmt.Printf("Alamat: %s\n", customer.Alamat)
-			}
+		case 4:
+			fmt.Println("Anda memilih 4")
+		case 5:
+			fmt.Println("Anda memilih 5")
 		case 0:
 			fmt.Println("Keluar dari menu Master Customer")
 			return
