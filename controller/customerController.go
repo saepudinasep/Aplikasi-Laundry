@@ -1,12 +1,16 @@
 package controller
 
 import (
+	"challenge-godb/config"
 	"challenge-godb/model"
 	"database/sql"
 	"fmt"
 )
 
-func AddCustomer(customer model.Customer, tx *sql.Tx) error {
+func AddCustomer(customer model.Customer) error {
+	db := config.ConnectDb()
+	defer db.Close()
+
 	if customer.Name == "" {
 		return fmt.Errorf("nama tidak boleh kosong")
 	}
@@ -20,17 +24,21 @@ func AddCustomer(customer model.Customer, tx *sql.Tx) error {
 	}
 
 	queryInsert := "INSERT INTO mst_customers (id_customer, name, no_telp, alamat) VALUES ($1, $2, $3, $4)"
-	_, err := tx.Exec(queryInsert, customer.Id_Customer, customer.Name, customer.No_Telp, customer.Alamat)
+	_, err := db.Exec(queryInsert, customer.Id_Customer, customer.Name, customer.No_Telp, customer.Alamat)
 	if err != nil {
 		return err
 	} else {
-		fmt.Println("Successfully inserted data")
+		fmt.Println("Successfully Inserted Data!")
 	}
 
 	return nil
 }
 
-func UpdateCustomer(customer model.Customer, tx *sql.Tx) error {
+func UpdateCustomer(customer model.Customer) error {
+	db := config.ConnectDb()
+	defer db.Close()
+	var err error
+
 	if customer.Name == "" {
 		return fmt.Errorf("nama tidak boleh kosong")
 	}
@@ -40,19 +48,20 @@ func UpdateCustomer(customer model.Customer, tx *sql.Tx) error {
 	}
 
 	updateCustomer := "UPDATE mst_customers SET name = $2, no_telp = $3, alamat = $4 WHERE id_customer = $1;"
-	var err error
-	_, err = tx.Exec(updateCustomer, customer.Id_Customer, customer.Name, customer.No_Telp, customer.Alamat)
+	_, err = db.Exec(updateCustomer, customer.Id_Customer, customer.Name, customer.No_Telp, customer.Alamat)
 	if err != nil {
 		panic(err)
 	} else {
-		fmt.Println("successfully Update Data")
+		fmt.Println("Successfully Update Data!")
 	}
 
 	return nil
 }
 
-func DeleteCustomer(id string, tx *sql.Tx) error {
-	exists, err := IsCustomerExists(id, tx)
+func DeleteCustomer(id string) error {
+	db := config.ConnectDb()
+	defer db.Close()
+	exists, err := IsCustomerExists(id)
 	if err != nil {
 		return err
 	}
@@ -60,7 +69,7 @@ func DeleteCustomer(id string, tx *sql.Tx) error {
 		return fmt.Errorf("pelanggan dengan ID %s tidak ditemukan", id)
 	}
 
-	hasTransactions, err := HasCustomerTransactions(id, tx)
+	hasTransactions, err := HasCustomerTransactions(id)
 	if err != nil {
 		return err
 	}
@@ -69,28 +78,93 @@ func DeleteCustomer(id string, tx *sql.Tx) error {
 	}
 
 	query := "DELETE FROM mst_customers WHERE id_customer = $1;"
-	_, err = tx.Exec(query, id)
+	_, err = db.Exec(query, id)
 	if err != nil {
 		return err
+	} else {
+		fmt.Println("Successfully deleted data!")
 	}
 
 	return nil
 }
 
-func IsCustomerExists(id string, tx *sql.Tx) (bool, error) {
+func GetAllCustomer() []model.Customer {
+	db := config.ConnectDb()
+	defer db.Close()
+
+	sqlQuery := "SELECT * FROM mst_customers"
+
+	rows, err := db.Query(sqlQuery)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	customers := ScanCustomer(rows)
+
+	return customers
+}
+
+func ScanCustomer(rows *sql.Rows) []model.Customer {
+	customers := []model.Customer{}
+	var err error
+
+	for rows.Next() {
+		customer := model.Customer{}
+		err := rows.Scan(&customer.Id_Customer, &customer.Name, &customer.No_Telp, &customer.Alamat)
+		if err != nil {
+			panic(err)
+		}
+
+		customers = append(customers, customer)
+	}
+
+	err = rows.Err()
+	if err != nil {
+		panic(err)
+	}
+
+	return customers
+}
+
+func GetCustomerById(id string) model.Customer {
+	db := config.ConnectDb()
+	defer db.Close()
+	var err error
+
+	sqlQuery := "SELECT * FROM mst_customers WHERE id_customer = $1"
+
+	customer := model.Customer{}
+	err = db.QueryRow(sqlQuery, id).Scan(&customer.Id_Customer, &customer.Name, &customer.No_Telp, &customer.Alamat)
+	if err == sql.ErrNoRows {
+		return model.Customer{}
+	} else if err != nil {
+		panic(err)
+	}
+
+	return customer
+}
+
+func IsCustomerExists(id string) (bool, error) {
+	db := config.ConnectDb()
+	defer db.Close()
+
 	query := "SELECT COUNT(*) FROM mst_customers WHERE id_customer = $1;"
 	var count int
-	err := tx.QueryRow(query, id).Scan(&count)
+	err := db.QueryRow(query, id).Scan(&count)
 	if err != nil {
 		return false, err
 	}
 	return count > 0, nil
 }
 
-func HasCustomerTransactions(id string, tx *sql.Tx) (bool, error) {
+func HasCustomerTransactions(id string) (bool, error) {
+	db := config.ConnectDb()
+	defer db.Close()
+
 	query := "SELECT COUNT(*) FROM trx_order WHERE customer_id = $1;"
 	var count int
-	err := tx.QueryRow(query, id).Scan(&count)
+	err := db.QueryRow(query, id).Scan(&count)
 	if err != nil {
 		return false, err
 	}
