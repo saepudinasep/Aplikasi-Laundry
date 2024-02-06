@@ -10,7 +10,11 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/olekukonko/tablewriter"
 )
+
+var IdOrder string
 
 func TransaksiMasterOrder(order model.Order) {
 	reader := bufio.NewReader(os.Stdin)
@@ -37,12 +41,14 @@ func TransaksiMasterOrder(order model.Order) {
 			addOrders(reader)
 		case 2:
 			db := config.ConnectDb()
+			defer db.Close()
 			// var customerId string
 			fmt.Print("Masukkan ID Customer: ")
 			customerId, _ := reader.ReadString('\n')
 			// Start Order
 			orders := controller.GetOrderByCustomerId(strings.TrimSpace(customerId))
 			for _, order := range orders {
+				IdOrder = order.Id_Order
 				tanggal := controller.FormatDatabaseDate(order.Tanggal_Masuk)
 				fmt.Println(strings.Repeat("=", 50))
 				fmt.Println("No: ", order.Id_Order)
@@ -53,55 +59,69 @@ func TransaksiMasterOrder(order model.Order) {
 				customer := controller.GetCustomerById(strings.TrimSpace(order.Customer_Id))
 				fmt.Println("Nama Customer: ", customer.Name)
 				fmt.Println("No HP: ", customer.No_Telp)
+				fmt.Println(strings.Repeat("=", 50))
+
 				// End Customer
-
-				// Start Order Detail
-				orderDetails := controller.GetOrderDetailByOrderId(order.Id_Order)
-				for _, orderDetail := range orderDetails {
-
-					// Start Layanan
-					// layanan = controller.GetLayananById(strings.TrimSpace(orderDetail.Layanan_Id))
-					// fmt.Println(strings.Repeat("=", 50))
-					// fmt.Println()
-					// End Layanan
-
-					fmt.Println(orderDetail.Id_Order_Detail, orderDetail.Order_Id, orderDetail.Layanan_Id, orderDetail.Quantity)
-
-					orderIDInt, err := strconv.Atoi(order.Id_Order)
-					if err != nil {
-						panic(err)
-					}
-
-					totalHarga, err := controller.GetTotalHarga(db, orderIDInt)
-					if err != nil {
-						panic(err)
-					}
-
-					fmt.Printf("Total Harga: %d\n", totalHarga)
-
-					fmt.Print("Masukkan Penerima: ")
-					namaPenerimaUpdate, _ := reader.ReadString('\n')
-
-					orderUpdate := model.Order{
-						Id_Order:       order.Id_Order,
-						Tanggal_Keluar: time.Now().Local(),
-						Penerima:       strings.TrimSpace(namaPenerimaUpdate),
-					}
-
-					err = controller.UpdateOrder(orderUpdate)
-					if err != nil {
-						fmt.Println("Error:", err)
-					} else {
-						fmt.Println("Terimakasih Sudah Transaksi!")
-					}
-				} // End Order Detail
 			} // End Order
+			// Start Order Detail
+			// orderDetails := controller.GetOrderDetailByOrderId(strings.TrimSpace(IdOrder))
+			orderDetails := controller.GetOrderDetailByOrderId(strings.TrimSpace(IdOrder))
+			orderIDInt, err := strconv.Atoi(IdOrder)
+			if err != nil {
+				panic(err)
+			}
 
-			// fmt.Println("Customer  : ", customerId)
-			// fmt.Print("Masukkan Nama Penerima: ")
-			// fmt.Scan(&penerima)
-			// fmt.Println("Penerima  : ", penerima)
+			totalHarga, err := controller.GetTotalHarga(db, orderIDInt)
+			if err != nil {
+				panic(err)
+			}
+
+			// Membuat tabel baru
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetHeader([]string{"ID Layanan", "Nama Layanan", "Jumlah", "Satuan", "Harga", "Total", "Total Harga"})
+
+			for _, orderDetail := range orderDetails {
+				layanan := controller.GetLayananById(strings.TrimSpace(orderDetail.Layanan_Id))
+				total := layanan.Harga * orderDetail.Quantity
+
+				row := []string{
+					layanan.Id_Layanan,
+					layanan.Nama_Layanan,
+					fmt.Sprintf("%d", orderDetail.Quantity),
+					layanan.Satuan,
+					fmt.Sprintf("%d", layanan.Harga),
+					fmt.Sprintf("%d", total),
+					"", // Kolom kosong untuk total harga setiap baris
+				}
+				table.Append(row)
+			}
+
+			// Menambahkan baris untuk total harga di bagian bawah tabel
+			table.SetFooter([]string{"", "", "", "", "", "", fmt.Sprintf("Total Harga: %d", totalHarga)})
+
+			// Menampilkan tabel
+			table.Render()
+
+			fmt.Print("Masukkan Penerima: ")
+			namaPenerimaUpdate, _ := reader.ReadString('\n')
+
+			orderUpdate := model.Order{
+				Id_Order:       IdOrder,
+				Tanggal_Keluar: time.Now().Local(),
+				Penerima:       strings.TrimSpace(namaPenerimaUpdate),
+			}
+
+			err = controller.UpdateOrder(orderUpdate)
+			if err != nil {
+				fmt.Println("Error:", err)
+			} else {
+				fmt.Println("Terimakasih Sudah Transaksi!")
+			}
 		case 3:
+			orderDetails := controller.GetOrderDetailByOrderId("4")
+			for _, orderDetail := range orderDetails {
+				fmt.Println(orderDetail.Id_Order_Detail, orderDetail.Order_Id, orderDetail.Layanan_Id, orderDetail.Quantity)
+			}
 		case 4:
 		case 0:
 			fmt.Println("Keluar dari menu Order")
