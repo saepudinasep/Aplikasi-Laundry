@@ -7,4 +7,5 @@ type Order struct {
 	Customer_Id    string
 	Tanggal_Masuk  time.Time
 	Tanggal_Keluar time.Time
+	Penerima       string
 }

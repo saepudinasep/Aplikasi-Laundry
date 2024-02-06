@@ -6,10 +6,11 @@ CREATE TABLE mst_customers (
 );
 
 CREATE TABLE trx_order(
-    id_order VARCHAR(100) PRIMARY KEY,
+    id_order SERIAL PRIMARY KEY,
     customer_id VARCHAR(100),
     tanggal_masuk DATE,
     tanggal_keluar DATE,
+	penerima VARCHAR(100),
     FOREIGN KEY (customer_id) REFERENCES mst_customers(id_customer)
 );
 
@@ -21,8 +22,8 @@ CREATE TABLE mst_layanan (
 );
 
 CREATE TABLE trx_order_detail (
-    id_order_detail VARCHAR(100) PRIMARY KEY,    
-    order_id VARCHAR(100),
+    id_order_detail SERIAL PRIMARY KEY,    
+    order_id SERIAL,
     layanan_id VARCHAR(100),
     quantity INT,
     FOREIGN KEY (order_id) REFERENCES trx_order(id_order),

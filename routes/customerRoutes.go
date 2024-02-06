@@ -71,12 +71,6 @@ func MenuMasterCustomer(customer model.Customer) {
 		case 2:
 			fmt.Print("Masukkan ID Customer yang akan diupdate: ")
 			idCustomerUpdateStr, _ := reader.ReadString('\n')
-			// Mengonversi ID Customer yang diambil dari string ke int
-			// idCustomerUpdate, err := strings.TrimSpace(idCustomerUpdateStr)
-			// if err != nil {
-			// 	fmt.Println("Error:", err)
-			// 	return
-			// }
 
 			customer = controller.GetCustomerById(strings.TrimSpace(idCustomerUpdateStr))
 			if err != nil {

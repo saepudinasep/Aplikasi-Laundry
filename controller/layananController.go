@@ -61,7 +61,7 @@ func DeleteLayanan(id string) error {
 		return err
 	}
 	if hasTransactions {
-		return fmt.Errorf("Layanan dengan ID %s memiliki transaksi terkait dan tidak dapat dihapus", id)
+		return fmt.Errorf("layanan dengan ID %s memiliki transaksi terkait dan tidak dapat dihapus", id)
 	}
 
 	query := "DELETE FROM mst_layanan WHERE id_layanan = $1"

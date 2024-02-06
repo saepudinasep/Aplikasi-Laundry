@@ -47,15 +47,15 @@ DELETE FROM mst_layanan WHERE id_layanan = '5';
 --------------------------- Order ---------------------------------------------------
 
 -- Select Semua Order
-SELECT id_order, customer_id, tanggal_masuk, tanggal_keluar FROM trx_order;
+SELECT id_order, customer_id, tanggal_masuk, tanggal_keluar, penerima FROM trx_order;
 
 -- Select Order Berdasarkan Id
-SELECT id_order, customer_id, tanggal_masuk, tanggal_keluar FROM trx_order
-WHERE id_order = '12345';
+SELECT id_order, customer_id, tanggal_masuk, tanggal_keluar, penerima FROM trx_order
+WHERE id_order = '1';
 
 -- Insert Order
-INSERT INTO trx_order (id_order, customer_id, tanggal_masuk, tanggal_keluar)
-VALUES (12345, 1, '18-08-2022', '20-08-2022');
+INSERT INTO trx_order (customer_id, tanggal_masuk, tanggal_keluar, penerima)
+VALUES (1, '18-08-2022', '20-08-2022', 'Mirna') RETURNING id_order;
 
 
 --------------------------- Order Detail ----------------------------------------------
@@ -65,10 +65,14 @@ SELECT id_order_detail, order_id, layanan_id, quantity FROM trx_order_detail;
 
 -- Select Order Detail Berdasarkan Id
 SELECT id_order_detail, order_id, layanan_id, quantity FROM trx_order_detail
-WHERE id_order_detail = '1';
+WHERE order_id = '1';
 
 -- Insert Order Detail
-INSERT INTO trx_order_detail (id_order_detail, order_id, layanan_id, quantity)
-VALUES (1, 12345, 1, 5),
-(2, 12345, 2, 1),
-(3, 12345, 3, 2);
+INSERT INTO trx_order_detail (order_id, layanan_id, quantity)
+VALUES (1, 1, 5) RETURNING id_order_detail;
+
+INSERT INTO trx_order_detail (order_id, layanan_id, quantity)
+VALUES (1, 2, 1) RETURNING id_order_detail;
+
+INSERT INTO trx_order_detail (order_id, layanan_id, quantity)
+VALUES (1, 3, 2) RETURNING id_order_detail;
