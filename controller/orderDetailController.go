@@ -38,6 +38,10 @@ func GetTotalHarga(db *sql.DB, orderID int) (int, error) {
 }
 
 func GetOrderDetailByOrderId(id string) []model.OrderDetail {
+	if id == "" {
+		// Atau sesuaikan dengan penanganan kesalahan yang sesuai.
+		panic("ID pesanan tidak valid")
+	}
 	db := config.ConnectDb()
 	defer db.Close()
 

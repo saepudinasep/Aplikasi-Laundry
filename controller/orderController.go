@@ -27,21 +27,41 @@ func IsValidDateFormat(date string) bool {
 	return err == nil
 }
 
-func GetOrderByCustomerId(id string) []model.Order {
+func GetOrderByCustomerId(id string) model.Order {
 	db := config.ConnectDb()
 	defer db.Close()
+	var err error
 
 	sqlQuery := "SELECT id_order, customer_id, tanggal_masuk FROM trx_order WHERE customer_id = $1 AND tanggal_keluar IS NULL"
 
-	rows, err := db.Query(sqlQuery, id)
-	if err != nil {
+	order := model.Order{}
+	err = db.QueryRow(sqlQuery, id).Scan(&order.Id_Order, &order.Customer_Id, &order.Tanggal_Masuk)
+
+	if err == sql.ErrNoRows {
+		return model.Order{}
+	} else if err != nil {
 		panic(err)
 	}
-	defer rows.Close()
 
-	orders := ScanOrder(rows)
+	return order
+}
 
-	return orders
+func GetOrderByOrderId(id string) model.Order {
+	db := config.ConnectDb()
+	defer db.Close()
+	var err error
+
+	sqlQuery := "SELECT * FROM trx_order WHERE id_order = $1"
+
+	order := model.Order{}
+	err = db.QueryRow(sqlQuery, id).Scan(&order.Id_Order, &order.Customer_Id, &order.Tanggal_Masuk, &order.Tanggal_Keluar, &order.Penerima)
+	if err == sql.ErrNoRows {
+		return model.Order{}
+	} else if err != nil {
+		panic(err)
+	}
+
+	return order
 }
 
 func ScanOrder(rows *sql.Rows) []model.Order {
@@ -65,14 +85,10 @@ func ScanOrder(rows *sql.Rows) []model.Order {
 	return orders
 }
 
-func UpdateOrder(order model.Order) error {
-	db := config.ConnectDb()
-	defer db.Close()
-	var err error
-
+func UpdateOrder(tx *sql.Tx, order *model.Order) error {
 	updateOrder := "UPDATE trx_order SET tanggal_keluar = $2, penerima = $3 WHERE id_order = $1"
 
-	_, err = db.Exec(updateOrder, order.Id_Order, order.Tanggal_Keluar, order.Penerima)
+	_, err := tx.Exec(updateOrder, order.Id_Order, order.Tanggal_Keluar, order.Penerima)
 	if err != nil {
 		panic(err)
 	}
